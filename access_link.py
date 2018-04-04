@@ -3,7 +3,7 @@
 /***************************************************************************
  AccessLink
                                  A QGIS plugin
- Zeigespezifische Vektorobjekte eines Layers an die in einer Access Datenbank beschrieben werden.
+ Zeige spezifische Vektorobjekte eines Layers an die in einer Access Datenbank beschrieben werden.
                               -------------------
         begin                : 2018-04-04
         git sha              : $Format:%H$
@@ -22,6 +22,7 @@
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
+import qgis
 from qgis.core import QgsProject
 # Initialize Qt resources from file resources.py
 import resources
@@ -67,6 +68,12 @@ class AccessLink:
         # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'AccessLink')
         self.toolbar.setObjectName(u'AccessLink')
+
+        # Create the dialog (after translation) and keep reference
+        self.dlg = AccessLinkDialog()
+        # Call the initialization of the plugin when QGIS finished
+        # its own initialization
+        qgis.utils.iface.initializationCompleted.connect(self.init_plugin)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -160,19 +167,12 @@ class AccessLink:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        # Create the dialog (after translation) and keep reference
-        self.dlg = AccessLinkDialog()
-
         icon_path = ':/plugins/AccessLink/icon.png'
         self.add_action(
             icon_path,
             text=self.tr(u'Access Link'),
             callback=self.run,
             parent=self.iface.mainWindow())
-
-        # Start the poll worker thread
-        project = QgsProject.instance()
-        start_poll_worker(project=project, iface=self.iface)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -187,9 +187,9 @@ class AccessLink:
         # Stop the poll worker
         stop_poll_worker()
 
-
     def run(self):
         """Run method that performs all the real work"""
+
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -199,3 +199,13 @@ class AccessLink:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
             pass
+
+    def init_plugin(self):
+        """This method must be called after QGIS is completely intialized, hence all projects
+        and plugins are loaded
+
+        :return:
+        """
+        # Start the poll worker thread
+        start_poll_worker()
+        self.dlg.load_settings()

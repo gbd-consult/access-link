@@ -23,17 +23,19 @@
 
 import os
 import time
-from qgis.gui import QgisInterface
-from qgis.core import QgsProject, QgsMapLayerRegistry, QgsVectorLayer
-from PyQt4.QtCore import QObject, QThread
+import qgis
+from qgis.gui import QgisInterface, QgsMapCanvas
+from qgis.core import QgsProject, QgsMapLayerRegistry, QgsVectorLayer, QgsFeature
+from PyQt4.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt4.QtGui import QMessageBox
 
 worker_thread = None
 worker_object = None
 
 
-def load_settings(project):
+def load_settings():
     """Load all settings from the project file"""
+    project = QgsProject.instance()
     ascii_file = project.readEntry("access_link", "ascii_file", "/tmp/ascii.txt")[0]
     lock_file = project.readEntry("access_link", "lock_file", "/tmp/lock.log")[0]
     batch_file = project.readEntry("access_link", "batch_file", "/tmp/script.vba")[0]
@@ -53,25 +55,22 @@ def load_settings(project):
     return settings
 
 
-def start_poll_worker(project, iface):
+def start_poll_worker():
     """Start the thread that polls the ascii file for changes and zooms to the vector id
-
-    :param project: The project file that contains the settings for file polling
-    :param iface:
-    :return:
     """
     global worker_thread, worker_object
 
     if worker_thread:
         stop_poll_worker()
 
-    worker_object = Worker(project=project, iface=iface)
+    worker_object = Worker()
     worker_thread = QThread()
 
     worker_object.moveToThread(worker_thread)
 
     worker_thread.started.connect(worker_object.run)
     worker_thread.start()
+
     print("Worker thread started")
 
 
@@ -81,6 +80,7 @@ def stop_poll_worker():
     if worker_thread:
         if worker_object:
             worker_object.kill()
+            worker_object = None
         worker_thread.quit()
         worker_thread.wait()
         worker_thread.deleteLater()
@@ -90,31 +90,36 @@ def stop_poll_worker():
 
 
 class Worker(QObject):
-    """This is the class that polls the ascii file and updates the zoom of the canvas"""
+    """This is the class that polls the ascii file and triggers the zom to selected features"""
 
-    def __init__(self, project, iface):
-        """The function that runs the infinite loop to poll a file for changes. If the text file changes,
-        then the content will be read and zoom to a feature with the same id.
-
-        :param project:
-        :param iface:
-        :return:
-        """
+    def __init__(self):
         QObject.__init__(self)
-        settings = load_settings(project)
-        self.layer_reg = QgsMapLayerRegistry.instance()
-        self.iface = iface
 
+        self.poll_time = None
+        self.ascii_file = None
+        self.vector_layer = None
+        self.lock_file = None
+        self.attribute_column = None
+        self.killed = False
         self.mtime = None
+        self.layer = None
+        self.field_index = None
+        self.layer_reg = None
+        self.load()
 
-        print("Settings", settings)
+    def load(self):
+
+        print("Load data for file poll thread")
+
+        settings = load_settings()
+        self.layer_reg = QgsMapLayerRegistry.instance()
 
         self.ascii_file = settings["ascii_file"]
         self.vector_layer = settings["vector_layer"]
         self.lock_file = settings["lock_file"]
         self.attribute_column = settings["attribute_column"]
         self.poll_time = float(settings["poll_time"])
-        print("Poll time", self.poll_time)
+        print(settings)
 
         self.killed = False
 
@@ -123,13 +128,14 @@ class Worker(QObject):
             self.killed = True
             return
         else:
-            self.mtime = os.path.getmtime(self.ascii_file)
+            self.mtime = None
 
         self.layer = self.layer_reg.mapLayersByName(self.vector_layer)
         if self.layer and len(self.layer) > 0:
             self.layer = self.layer[0]
         if not self.layer:
-            QMessageBox.warning(None, u"Error", u"Der Vektorlayer <%s> wurde nicht gefunden. Breche Datei-Polling ab."%self.vector_layer)
+            QMessageBox.warning(None, u"Error",
+                                u"Der Vektorlayer <%s> wurde nicht gefunden. Breche Datei-Polling ab." % self.vector_layer)
             self.killed = True
             return
 
@@ -137,10 +143,10 @@ class Worker(QObject):
         attr_list = []
         for field in fields:
             attr_list.append(field.name())
-        print(attr_list)
         if self.attribute_column not in attr_list:
             QMessageBox.warning(None, u"Error", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>. "
-                                        u"Breche Datei-Polling ab."%(self.vector_layer, self.attribute_column))
+                                                u"Breche Datei-Polling ab." % (
+                                self.vector_layer, self.attribute_column))
             self.killed = True
             return
 
@@ -150,24 +156,41 @@ class Worker(QObject):
         self.killed = True
 
     def run(self):
-        """The infinite loop that does all the polling and zooming
-
-        :return:
+        """The function that runs the infinite loop to poll the ascii file for changes. If the text file changes,
+        then the content will be read and zoom to a feature with the same id.
         """
-        while True:
+        print("Run infinite loop")
 
-            time.sleep(self.poll_time)
+        while True:
+            if self.poll_time is not None:
+                time.sleep(self.poll_time)
+            else:
+                time.sleep(1)
+                continue
 
             if self.killed is True:
                 print("Worker thread got killed")
                 break
 
             # Check the modification time
-            new_mtime = os.path.getmtime(self.ascii_file)
+            if os.path.isfile(self.ascii_file):
+                new_mtime = os.path.getmtime(self.ascii_file)
 
-            if self.mtime == new_mtime:
-                print("Nothing changed")
-                continue
+                if self.mtime == new_mtime:
+                    print("Nothing to do")
+                    continue
+                else:
+                    print("File was changes", self.mtime, new_mtime)
+                    self.mtime = new_mtime
+                    feature_id = open(self.ascii_file, "r").read().strip()
+
+                    expr = "\"%s\" = '%s'" % (self.attribute_column, feature_id)
+                    print("Expression", expr)
+
+                    self.layer.selectByExpression(expr)
+                    qgis.utils.iface.setActiveLayer(self.layer)
+                    # Zoom to the selected features
+                    qgis.utils.iface.actionZoomToSelected().trigger()
             else:
-                print("File was changes", self.mtime, new_mtime)
-                self.mtime = new_mtime
+                print("Waiting for QGIS to initialize")
+

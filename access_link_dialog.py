@@ -35,13 +35,12 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
-    def __init__(self, iface=None, parent=None):
+    def __init__(self, parent=None):
         """Constructor."""
         super(AccessLinkDialog, self).__init__(parent)
 
-        self.iface = iface
         self.setupUi(self)
-        self.project = QgsProject.instance()
+        self.project = None
 
         self.toolButtonIdFile.released.connect(self.select_ascii_id_file)
         self.toolButtonLockFile.released.connect(self.select_lock_file)
@@ -50,12 +49,12 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
         self.pushButtonSave.released.connect(self.save_settings)
         self.pushButtonRestartPolling.released.connect(self.start_poll_worker)
         self.pushButtonStopPolling.released.connect(self.stop_poll_worker)
-
-        self.load_settings()
+        self.pushButtonReload.released.connect(self.load_settings)
 
     def load_settings(self):
         """Load all settings from the project file"""
 
+        self.project = QgsProject.instance()
         ascii_file = self.project.readEntry("access_link", "ascii_file", "/tmp/ascii.txt")[0]
         self.lineEditIdFile.setText(ascii_file)
         lock_file = self.project.readEntry("access_link", "lock_file", "/tmp/lock.log")[0]
@@ -70,7 +69,7 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
         self.lineEditPollTime.setText(poll_time)
 
     def select_ascii_id_file(self):
-        """Set the ASCII file path and the lock path"""
+        """Set the ASCII file path and the lock path derived from the ASCII file path"""
 
         file_name = QFileDialog.getOpenFileName(self, "Wähle ASCII Datei die die Vektor-Id enthält")
         self.lineEditIdFile.setText(file_name)
@@ -92,18 +91,14 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
         """Save all settings in the project file
         """
         self.project.writeEntry("access_link", "ascii_file", self.lineEditIdFile.text())
-        self.project.writeEntry("access_link", "lock_file",  self.lineEditLockFile.text())
+        self.project.writeEntry("access_link", "lock_file", self.lineEditLockFile.text())
         self.project.writeEntry("access_link", "batch_file", self.lineEditBatchFile.text())
         self.project.writeEntry("access_link", "vector_layer", self.lineEditVectorLayer.text())
         self.project.writeEntry("access_link", "attribute_column", self.lineEditAttributeColumn.text())
         self.project.writeEntry("access_link", "poll_time", self.lineEditPollTime.text())
 
     def start_poll_worker(self):
-        start_poll_worker(project=self.project, iface=self.iface)
+        start_poll_worker()
 
     def stop_poll_worker(self):
         stop_poll_worker()
-
-
-
-
