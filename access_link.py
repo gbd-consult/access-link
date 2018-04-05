@@ -229,9 +229,11 @@ class AccessLink:
         """
         settings = load_settings()
         layer = self.iface.activeLayer()
+        if not layer:
+            return
         attr_col = settings["attribute_column"]
         features = layer.selectedFeatures()
-        if len(features) > 0:
+        if layer and len(features) > 0:
             fields = layer.fields()
             attr_list = []
             for field in fields:
