@@ -24,9 +24,8 @@
 import os
 import time
 import qgis
-from qgis.gui import QgisInterface, QgsMapCanvas
-from qgis.core import QgsProject, QgsMapLayerRegistry, QgsVectorLayer, QgsFeature
-from PyQt4.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from qgis.core import QgsProject, QgsMapLayerRegistry
+from PyQt4.QtCore import QObject, QThread
 from PyQt4.QtGui import QMessageBox
 
 worker_thread = None
@@ -71,7 +70,7 @@ def start_poll_worker():
     worker_thread.started.connect(worker_object.run)
     worker_thread.start()
 
-    print("Worker thread started")
+    #print("Worker thread started")
 
 
 def stop_poll_worker():
@@ -86,7 +85,7 @@ def stop_poll_worker():
         worker_thread.deleteLater()
         worker_thread = None
 
-        print("Worker thread stopped")
+        #print("Worker thread stopped")
 
 
 class Worker(QObject):
@@ -109,7 +108,7 @@ class Worker(QObject):
 
     def load(self):
 
-        print("Load data for file poll thread")
+        #print("Load data for file poll thread")
 
         settings = load_settings()
         self.layer_reg = QgsMapLayerRegistry.instance()
@@ -119,7 +118,7 @@ class Worker(QObject):
         self.lock_file = settings["lock_file"]
         self.attribute_column = settings["attribute_column"]
         self.poll_time = float(settings["poll_time"])
-        print(settings)
+        #print(settings)
 
         self.killed = False
 
@@ -159,7 +158,7 @@ class Worker(QObject):
         """The function that runs the infinite loop to poll the ascii file for changes. If the text file changes,
         then the content will be read and zoom to a feature with the same id.
         """
-        print("Run infinite loop")
+        #print("Run infinite loop")
 
         while True:
             if self.poll_time is not None:
@@ -169,7 +168,7 @@ class Worker(QObject):
                 continue
 
             if self.killed is True:
-                print("Worker thread got killed")
+                #print("Worker thread got killed")
                 break
 
             # Check the modification time
@@ -177,20 +176,21 @@ class Worker(QObject):
                 new_mtime = os.path.getmtime(self.ascii_file)
 
                 if self.mtime == new_mtime:
-                    print("Nothing to do")
+                    #print("Nothing to do")
                     continue
                 else:
-                    print("File was changes", self.mtime, new_mtime)
+                    #print("File was changes", self.mtime, new_mtime)
                     self.mtime = new_mtime
                     feature_id = open(self.ascii_file, "r").read().strip()
 
                     expr = "\"%s\" = '%s'" % (self.attribute_column, feature_id)
-                    print("Expression", expr)
+                    #print("Expression", expr)
 
                     self.layer.selectByExpression(expr)
                     qgis.utils.iface.setActiveLayer(self.layer)
                     # Zoom to the selected features
                     qgis.utils.iface.actionZoomToSelected().trigger()
             else:
-                print("Waiting for QGIS to initialize")
+                pass
+                #print("Waiting for QGIS to initialize")
 

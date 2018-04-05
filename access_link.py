@@ -20,16 +20,17 @@
  *                                                                         *
  ***************************************************************************/
 """
+import subprocess
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
 import qgis
-from qgis.core import QgsProject
-# Initialize Qt resources from file resources.py
+from qgis.gui import QgisInterface
+from PyQt4.QtGui import QMessageBox
 import resources
 # Import the code for the dialog
 from access_link_dialog import AccessLinkDialog
 import os.path
-from .file_poller import start_poll_worker, stop_poll_worker
+from .file_poller import start_poll_worker, stop_poll_worker, load_settings
 
 
 class AccessLink:
@@ -61,7 +62,6 @@ class AccessLink:
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
 
-
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&Access Link')
@@ -70,7 +70,7 @@ class AccessLink:
         self.toolbar.setObjectName(u'AccessLink')
 
         # Create the dialog (after translation) and keep reference
-        self.dlg = AccessLinkDialog()
+        self.dlg = AccessLinkDialog(parent=self.iface.mainWindow())
         # Call the initialization of the plugin when QGIS finished
         # its own initialization
         qgis.utils.iface.initializationCompleted.connect(self.init_plugin)
@@ -90,18 +90,17 @@ class AccessLink:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('AccessLink', message)
 
-
     def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+            self,
+            icon_path,
+            text,
+            callback,
+            enabled_flag=True,
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=None,
+            whats_this=None,
+            parent=None):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -147,7 +146,7 @@ class AccessLink:
         action.setEnabled(enabled_flag)
 
         if status_tip is not None:
-            action.setStatusTip(status_tip)
+            action.setToolTip(status_tip)
 
         if whats_this is not None:
             action.setWhatsThis(whats_this)
@@ -168,10 +167,25 @@ class AccessLink:
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
         icon_path = ':/plugins/AccessLink/icon.png'
+        icon_path = None
         self.add_action(
             icon_path,
-            text=self.tr(u'Access Link'),
+            text=self.tr(u'Konfiguration'),
+            status_tip=self.tr(u"Konfiguriere das Access Link Plugin"),
+            whats_this=self.tr(u"Konfiguriere das Access Link Plugin"),
+            add_to_menu=True,
+            add_to_toolbar=False,
             callback=self.run,
+            parent=self.iface.mainWindow())
+
+        self.add_action(
+            icon_path,
+            text=self.tr(u'Access Feature'),
+            add_to_menu=True,
+            add_to_toolbar=True,
+            status_tip=self.tr(u"Zeige das aktuell selektierte Vektorfeature in MS-Access"),
+            whats_this=self.tr(u"Zeige das aktuell selektierte Vektorfeature in MS-Access"),
+            callback=self.open_access_for_feature,
             parent=self.iface.mainWindow())
 
     def unload(self):
@@ -209,3 +223,27 @@ class AccessLink:
         # Start the poll worker thread
         start_poll_worker()
         self.dlg.load_settings()
+
+    def open_access_for_feature(self):
+        """Start the VBL script with the currently selected feature as argument
+        """
+        settings = load_settings()
+        layer = self.iface.activeLayer()
+        attr_col = settings["attribute_column"]
+        features = layer.selectedFeatures()
+        if len(features) > 0:
+            fields = layer.fields()
+            attr_list = []
+            for field in fields:
+                attr_list.append(field.name())
+            if attr_col not in attr_list:
+                QMessageBox.warning(self.iface.mainWindow(),
+                                    u"Error", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>. " % (layer.name(),
+                                                                                                         attr_col))
+                return
+
+            id = features[0][attr_col].strip()
+            script = settings["batch_file"].strip()
+            print("Start", script, "with id", id)
+            # Just execute the script, don't wait for it
+            proc = subprocess.Popen(args=[script, id], shell=False)

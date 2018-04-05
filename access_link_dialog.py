@@ -25,7 +25,6 @@ import os
 
 from PyQt4 import QtGui, uic
 from qgis.core import QgsProject
-from PyQt4.QtCore import QFileInfo
 from PyQt4.QtGui import QFileDialog
 from .file_poller import start_poll_worker, stop_poll_worker
 

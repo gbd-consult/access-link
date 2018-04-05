@@ -19,7 +19,7 @@
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>Pfad zur ASCII Datei welche die Vektorobjekt-Id enthält</string>
+        <string>Pfad zur ASCII Datei welche die Vektorfeature-Id enthält</string>
        </property>
       </widget>
      </item>
@@ -48,7 +48,7 @@
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Pfad zur LOCK Datei, diese sollte sich im gleichen Verzeichnis befinden wie die Vektorobjekt-Id Datei</string>
+        <string>Pfad zur LOCK Datei, diese sollte sich im gleichen Verzeichnis befinden wie die Vektorfeature-Id Datei</string>
        </property>
       </widget>
      </item>
@@ -86,7 +86,7 @@
        <item>
         <widget class="QLineEdit" name="lineEditBatchFile">
          <property name="text">
-          <string>/usr/bin/bash</string>
+          <string>/bin/echo</string>
          </property>
         </widget>
        </item>
@@ -106,7 +106,7 @@
      <item>
       <widget class="QLabel" name="label_4">
        <property name="text">
-        <string>Name des Layers dessen Vektorobjekte angezegt werden sollen</string>
+        <string>Name des Layers dessen Vektorfeature angezegt werden sollen</string>
        </property>
       </widget>
      </item>
@@ -142,7 +142,7 @@
      <item>
       <widget class="QLabel" name="label_6">
        <property name="text">
-        <string>Zeit in Sekunden zu der die ASCII Datei auf neue Id's geprüft werden soll.</string>
+        <string>Zeit in Sekunden wenn neue Vektorfeature-Id's geprüft werden soll.</string>
        </property>
       </widget>
      </item>
@@ -159,6 +159,9 @@
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <widget class="QPushButton" name="pushButtonRestartPolling">
+       <property name="toolTip">
+        <string>Starte die permanente Überpüfung auf ausgewählte Vektorfeatures.</string>
+       </property>
        <property name="text">
         <string>Restart Polling</string>
        </property>
@@ -166,6 +169,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonStopPolling">
+       <property name="toolTip">
+        <string>Stoppe die permanente Überpüfung auf ausgewählte Vektorfeatures.</string>
+       </property>
        <property name="text">
         <string>Stop Polling</string>
        </property>
@@ -173,6 +179,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonReload">
+       <property name="toolTip">
+        <string>Lade die Einstellungen aus der Projektdatei neu ein.</string>
+       </property>
        <property name="text">
         <string>Reload</string>
        </property>
@@ -193,6 +202,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonSave">
+       <property name="toolTip">
+        <string>Übernimm die Einstellungen im aktuellen Projekt. Benutze die Speicher-Projekt Funktion in QGIS, um die Änderungen permanent zu speichern.</string>
+       </property>
        <property name="text">
         <string>Übernehmen</string>
        </property>
@@ -200,6 +212,9 @@
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonClose">
+       <property name="toolTip">
+        <string>Schließe den Dialog.</string>
+       </property>
        <property name="text">
         <string>Schließen</string>
        </property>
