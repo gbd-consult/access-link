@@ -44,7 +44,6 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
         self.toolButtonIdFile.released.connect(self.select_ascii_id_file)
         self.toolButtonLockFile.released.connect(self.select_lock_file)
         self.toolButtonBatchFile.released.connect(self.select_batch_file)
-        self.toolButtonBatchFile.released.connect(self.select_batch_file)
         self.pushButtonSave.released.connect(self.save_settings)
         self.pushButtonRestartPolling.released.connect(self.start_poll_worker)
         self.pushButtonStopPolling.released.connect(self.stop_poll_worker)
@@ -70,7 +69,7 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
     def select_ascii_id_file(self):
         """Set the ASCII file path and the lock path derived from the ASCII file path"""
 
-        file_name = QFileDialog.getOpenFileName(self, "Wähle ASCII Datei die die Vektor-Id enthält")
+        file_name = QFileDialog.getOpenFileName(self, u"Wähle ASCII Datei die die Vektor-Id enthält")
         self.lineEditIdFile.setText(file_name)
         # Extract the directory path from the ascii file path, since this should be the directory in which
         # the lock file is located
@@ -79,11 +78,11 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
         self.lineEditLockFile.setText(lock_path)
 
     def select_lock_file(self):
-        file_name = QFileDialog.getOpenFileName(self, "Wähle Lock Datei.")
+        file_name = QFileDialog.getOpenFileName(self, u"Wähle Lock Datei.")
         self.lineEditLockFile.setText(file_name)
 
     def select_batch_file(self):
-        file_name = QFileDialog.getOpenFileName(self, "Wähle das Visual Basic Script")
+        file_name = QFileDialog.getOpenFileName(self, u"Wähle das Visual Basic Script")
         self.lineEditBatchFile.setText(file_name)
 
     def save_settings(self):
