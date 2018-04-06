@@ -26,9 +26,9 @@ import os
 from PyQt4 import QtGui, uic
 from qgis.core import QgsProject
 from PyQt4.QtGui import QFileDialog
-from .file_poller import start_poll_worker, stop_poll_worker
+from .file_poller import start_poll_worker, stop_poll_worker, load_settings
 
-LOCK_FILE_NAME = "LOCK.log"
+LOCK_FILE_NAME = "lock.log"
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'access_link_dialog_base.ui'))
 
@@ -42,44 +42,34 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
         self.project = None
 
         self.toolButtonIdFile.released.connect(self.select_ascii_id_file)
-        self.toolButtonLockFile.released.connect(self.select_lock_file)
         self.toolButtonBatchFile.released.connect(self.select_batch_file)
         self.pushButtonSave.released.connect(self.save_settings)
         self.pushButtonRestartPolling.released.connect(self.start_poll_worker)
         self.pushButtonStopPolling.released.connect(self.stop_poll_worker)
-        self.pushButtonReload.released.connect(self.load_settings)
+        self.pushButtonReload.released.connect(self._load_settings)
 
-    def load_settings(self):
+    def _load_settings(self):
         """Load all settings from the project file"""
 
-        self.project = QgsProject.instance()
-        ascii_file = self.project.readEntry("access_link", "ascii_file", "/tmp/ascii.txt")[0]
-        self.lineEditIdFile.setText(ascii_file)
-        lock_file = self.project.readEntry("access_link", "lock_file", "/tmp/lock.log")[0]
-        self.lineEditLockFile.setText(lock_file)
-        batch_file = self.project.readEntry("access_link", "batch_file", "/tmp/script.vba")[0]
-        self.lineEditBatchFile.setText(batch_file)
-        vector_layer = self.project.readEntry("access_link", "vector_layer", "ALKIS")[0]
-        self.lineEditVectorLayer.setText(vector_layer)
-        attribute_column = self.project.readEntry("access_link", "attribute_column", "id")[0]
-        self.lineEditAttributeColumn.setText(attribute_column)
-        poll_time = self.project.readEntry("access_link", "poll_time", "0.5")[0]
-        self.lineEditPollTime.setText(poll_time)
+        settings = load_settings()
+        if settings is None:
+            return
 
-    def select_ascii_id_file(self):
+        self.lineEditTransferDir.setText(settings["transfer_dir"])
+        self.lineEditnputFile.setText(settings["input_file"])
+        self.lineEditOutputFile.setText(settings["output_file"])
+        self.lineEditLockFile.setText(settings["lock_file"])
+        self.lineEditAccessBin.setText(settings["access_bin"])
+        self.lineEditAccessDB.setText(settings["access_db"])
+        self.lineEditVectorLayer.setText(settings["vector_layer"])
+        self.lineEditAttributeColumn.setText(settings["attribute_column"])
+        self.lineEditPollTime.setText(settings["poll_time"])
+
+    def select_input_file(self):
         """Set the ASCII file path and the lock path derived from the ASCII file path"""
 
-        file_name = QFileDialog.getOpenFileName(self, u"Wähle ASCII Datei die die Vektor-Id enthält")
+        file_name = QFileDialog.getOpenFileName(self, u"Wähle Input Datei für QGIS")
         self.lineEditIdFile.setText(file_name)
-        # Extract the directory path from the ascii file path, since this should be the directory in which
-        # the lock file is located
-        dir_path = os.path.dirname(file_name)
-        lock_path = os.path.join(dir_path, LOCK_FILE_NAME)
-        self.lineEditLockFile.setText(lock_path)
-
-    def select_lock_file(self):
-        file_name = QFileDialog.getOpenFileName(self, u"Wähle Lock Datei.")
-        self.lineEditLockFile.setText(file_name)
 
     def select_batch_file(self):
         file_name = QFileDialog.getOpenFileName(self, u"Wähle das Visual Basic Script")
@@ -88,9 +78,12 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
     def save_settings(self):
         """Save all settings in the project file
         """
-        self.project.writeEntry("access_link", "ascii_file", self.lineEditIdFile.text())
+        self.project.writeEntry("access_link", "transfer_dir", self.lineEditTransferDir.text())
+        self.project.writeEntry("access_link", "input_file", self.lineEditnputFile.text())
+        self.project.writeEntry("access_link", "output_file", self.lineEditOutputFile.text())
         self.project.writeEntry("access_link", "lock_file", self.lineEditLockFile.text())
-        self.project.writeEntry("access_link", "batch_file", self.lineEditBatchFile.text())
+        self.project.writeEntry("access_link", "access_bin", self.lineEditAccessBin.text())
+        self.project.writeEntry("access_link", "access_db", self.lineEditAccessDB.text())
         self.project.writeEntry("access_link", "vector_layer", self.lineEditVectorLayer.text())
         self.project.writeEntry("access_link", "attribute_column", self.lineEditAttributeColumn.text())
         self.project.writeEntry("access_link", "poll_time", self.lineEditPollTime.text())

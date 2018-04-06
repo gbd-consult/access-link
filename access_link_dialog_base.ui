@@ -6,67 +6,112 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>847</width>
-    <height>456</height>
+    <width>743</width>
+    <height>521</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Access Link</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_7">
+  <layout class="QVBoxLayout" name="verticalLayout_11">
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout">
+    <layout class="QVBoxLayout" name="verticalLayout_10">
      <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Pfad zur ASCII Datei welche die Vektorfeature-Id enthält</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="QLineEdit" name="lineEditIdFile">
+        <widget class="QLabel" name="label">
          <property name="text">
-          <string>/tmp/updated_file.txt</string>
+          <string>Pfad zur Übergabeordner</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QToolButton" name="toolButtonIdFile">
-         <property name="text">
-          <string>...</string>
-         </property>
-        </widget>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QLineEdit" name="lineEditTransferDir">
+           <property name="text">
+            <string>Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\QGisUebergabe</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QToolButton" name="toolButtonIdFile">
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Pfad zur LOCK Datei, diese sollte sich im gleichen Verzeichnis befinden wie die Vektorfeature-Id Datei</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <layout class="QHBoxLayout" name="horizontalLayout_8">
        <item>
-        <widget class="QLineEdit" name="lineEditLockFile">
-         <property name="text">
-          <string>/tmp/LOCK.log</string>
-         </property>
-        </widget>
+        <layout class="QVBoxLayout" name="verticalLayout_8">
+         <item>
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>Name der Übergabedatei für Access</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <item>
+            <widget class="QLineEdit" name="lineEditOutputFile">
+             <property name="text">
+              <string>ImpAcc.txt</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
        </item>
        <item>
-        <widget class="QToolButton" name="toolButtonLockFile">
-         <property name="text">
-          <string>...</string>
-         </property>
-        </widget>
+        <layout class="QVBoxLayout" name="verticalLayout_9">
+         <item>
+          <widget class="QLabel" name="label_9">
+           <property name="text">
+            <string>Name der Übergabedatei für QGIS</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_7">
+           <item>
+            <widget class="QLineEdit" name="lineEditInputFile">
+             <property name="text">
+              <string>ExpAcc.txt</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>Name der LOCK Datei</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QLineEdit" name="lineEditLockFile">
+             <property name="text">
+              <string>lock.log</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
        </item>
       </layout>
      </item>
@@ -77,16 +122,16 @@
      <item>
       <widget class="QLabel" name="label_3">
        <property name="text">
-        <string>Pfad zum Visual Basic Script, welches die Verbindung zwischen QGIS und MS-ACCESS herstellt</string>
+        <string>Pfad zur MS-Access Anwendung</string>
        </property>
       </widget>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
-        <widget class="QLineEdit" name="lineEditBatchFile">
+        <widget class="QLineEdit" name="lineEditAccessBin">
          <property name="text">
-          <string>/bin/echo</string>
+          <string>C:\Program Files (x86)\Microsoft Office\OFFICE11\msaccess.exe</string>
          </property>
         </widget>
        </item>
@@ -102,11 +147,40 @@
     </layout>
    </item>
    <item>
+    <layout class="QVBoxLayout" name="verticalLayout_7">
+     <item>
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>Pfad zur MS-Access Kataster Datenbank</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <item>
+        <widget class="QLineEdit" name="lineEditAccessDB">
+         <property name="text">
+          <string>Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\KatasterDB.mdb</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QToolButton" name="toolButtonBatchFile_2">
+         <property name="text">
+          <string>...</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QVBoxLayout" name="verticalLayout_4">
      <item>
       <widget class="QLabel" name="label_4">
        <property name="text">
-        <string>Name des Layers dessen Vektorfeature angezegt werden sollen</string>
+        <string>Name des Kataster Layers</string>
        </property>
       </widget>
      </item>
@@ -124,7 +198,7 @@
      <item>
       <widget class="QLabel" name="label_5">
        <property name="text">
-        <string>Name der Attributspalte des Layers dessen Vektorobjekte angezegt werden sollen</string>
+        <string>Name der Attributspalte des Kataster-Layers, dessen Vektorobjekte angezegt werden sollen</string>
        </property>
       </widget>
      </item>
@@ -223,6 +297,10 @@
     </layout>
    </item>
   </layout>
+  <zorder>layoutWidget</zorder>
+  <zorder>label_4</zorder>
+  <zorder>layoutWidget_2</zorder>
+  <zorder>layoutWidget_3</zorder>
  </widget>
  <resources/>
  <connections>
@@ -233,12 +311,12 @@
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>661</x>
-     <y>743</y>
+     <x>732</x>
+     <y>510</y>
     </hint>
     <hint type="destinationlabel">
      <x>606</x>
-     <y>617</y>
+     <y>520</y>
     </hint>
    </hints>
   </connection>

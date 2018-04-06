@@ -225,9 +225,23 @@ class AccessLink:
         self.dlg.load_settings()
 
     def open_access_for_feature(self):
-        """Start the VBL script with the currently selected feature as argument
+        """Write the id into a text file and start MS-Access if its not running
         """
         settings = load_settings()
+
+        if settings is None:
+            return
+
+        output_file = os.path.join(settings["transfer_dir"], settings["output_file"])
+        lock_file = os.path.join(settings["transfer_dir"], settings["lock_file"])
+        access_bin = settings["access_bin"]
+        access_db = settings["access_db"]
+        # Extract lockfile
+        filename, file_extension = os.path.splitext(access_db)
+
+        access_db_lock_1 = "%s.laccdb"%filename
+        access_db_lock_2 = "%s.ldb"%filename
+
         layer = self.iface.activeLayer()
         if not layer:
             return
@@ -239,13 +253,52 @@ class AccessLink:
             for field in fields:
                 attr_list.append(field.name())
             if attr_col not in attr_list:
-                QMessageBox.warning(self.iface.mainWindow(),
-                                    u"Error", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>. " % (layer.name(),
-                                                                                                         attr_col))
+                QMessageBox.Critical(self.iface.mainWindow(),
+                                     u"Fehler", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>. " % (layer.name(),
+                                                                                                          attr_col))
                 return
 
             id = features[0][attr_col].strip()
-            script = settings["batch_file"].strip()
-            print("Start", script, "with id", id)
-            # Just execute the script, don't wait for it
-            proc = subprocess.Popen(args=[script, id], shell=False)
+
+            if os.path.exists(lock_file):
+                QMessageBox.Warning(self.iface.mainWindow(), u"Warnung",
+                                    u"Kann Kataster ID nicht schreiben, da Lockdatei <%s> existiert.")
+                return
+
+            try:
+                # Write Lockfile
+                lock_file = open(lock_file, "w")
+                lock_file.write("LOCK")
+                lock_file.flush()
+                lock_file.close()
+                # Write data
+                output_file = open(output_file, "w")
+                output_file.write(id)
+                output_file.flush()
+                output_file.close()
+            except Exception as e:
+                QMessageBox.Critical(self.iface.mainWindow(), u"Fehler",
+                                     u"Kann Lockfile oder Ausgabedatei nicht schreiben. Fehler: str(e)")
+                return
+            finally:
+                # Try to remove lock file
+                try:
+                    os.remove(lock_file)
+                except:
+                    pass
+
+            if os.path.exists(access_bin):
+                QMessageBox.Critical(self.iface.mainWindow(), u"Fehler",
+                                     u"MS-Access Programm nicht gefunden. Pfad: "
+                                     u"<%s>" % access_bin)
+            if os.path.isfile(access_db):
+                QMessageBox.Critical(self.iface.mainWindow(), u"Fehler",
+                                     u"MS-Access Datenbank nicht gefunden. Pfad: "
+                                     u"<%s>" % access_db)
+
+            if os.path.exists(access_db_lock_1) or os.path.exists(access_db_lock_2):
+                return
+
+            # Start MS-Access
+            print("Start", access_bin, access_db)
+            proc = subprocess.Popen(args=[access_bin, access_db], shell=False)
