@@ -215,7 +215,7 @@ class AccessLink:
             pass
 
     def init_plugin(self):
-        """This method must be called after QGIS is completely intialized, hence all projects
+        """This method must be called after QGIS is completely initialized, hence all projects
         and plugins are loaded
 
         :return:
@@ -253,50 +253,54 @@ class AccessLink:
             for field in fields:
                 attr_list.append(field.name())
             if attr_col not in attr_list:
-                QMessageBox.Critical(self.iface.mainWindow(),
-                                     u"Fehler", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>. " % (layer.name(),
+                QMessageBox.critical(self.iface.mainWindow(),
+                                     u"Access-Link: Fehler", u"Der Vektorlayer <%s> "
+                                                             u"hat keine Attributspalte <%s>. " % (layer.name(),
                                                                                                           attr_col))
                 return
 
             id = features[0][attr_col].strip()
 
             if os.path.exists(lock_file):
-                QMessageBox.Warning(self.iface.mainWindow(), u"Warnung",
-                                    u"Kann Kataster ID nicht schreiben, da Lockdatei <%s> existiert.")
+                QMessageBox.warning(self.iface.mainWindow(), u"Access-Link: Warnung",
+                                    u"Kann Kataster ID nicht schreiben, da Lockdatei <%s> existiert."%lock_file)
                 return
 
             try:
                 # Write Lockfile
-                lock_file = open(lock_file, "w")
-                lock_file.write("LOCK")
-                lock_file.flush()
-                lock_file.close()
+                lock = open(lock_file, "w")
+                #print(u"Create lock file")
+                lock.write("LOCK")
+                lock.flush()
+                lock.close()
                 # Write data
-                output_file = open(output_file, "w")
-                output_file.write(id)
-                output_file.flush()
-                output_file.close()
+                output = open(output_file, "w")
+                output.write(id)
+                output.write(os.linesep)
+                output.flush()
+                output.close()
             except Exception as e:
-                QMessageBox.Critical(self.iface.mainWindow(), u"Fehler",
+                QMessageBox.critical(self.iface.mainWindow(), u"Access-Link: Fehler",
                                      u"Kann Lockfile oder Ausgabedatei nicht schreiben. Fehler: str(e)")
                 return
             finally:
                 # Try to remove lock file
                 try:
+                    #print(u"Remove lock file")
                     os.remove(lock_file)
                 except:
                     pass
 
-            if os.path.exists(access_bin):
-                QMessageBox.Critical(self.iface.mainWindow(), u"Fehler",
+            if os.path.exists(access_bin) is False:
+                QMessageBox.critical(self.iface.mainWindow(), u"Access-Link: Fehler",
                                      u"MS-Access Programm nicht gefunden. Pfad: "
                                      u"<%s>" % access_bin)
-            if os.path.isfile(access_db):
-                QMessageBox.Critical(self.iface.mainWindow(), u"Fehler",
+            if os.path.isfile(access_db) is False:
+                QMessageBox.critical(self.iface.mainWindow(), u"Access-Link: Fehler",
                                      u"MS-Access Datenbank nicht gefunden. Pfad: "
                                      u"<%s>" % access_db)
 
-            if os.path.exists(access_db_lock_1) or os.path.exists(access_db_lock_2):
+            if os.path.exists(access_db_lock_1) is True or os.path.exists(access_db_lock_2) is True:
                 return
 
             # Start MS-Access

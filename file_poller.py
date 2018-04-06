@@ -39,19 +39,9 @@ def load_settings():
         QMessageBox.Critical(None, u"Fehler", u"Es existiert keine Projektdatei.")
         return None
 
-    transfer_dir = project.readEntry("access_link", "transfer_dir")[0]
-    input_file = project.readEntry("access_link", "input_file")[0]
-    output_file = project.readEntry("access_link", "output_file")[0]
-    lock_file = project.readEntry("access_link", "lock_file")[0]
-    access_bin = project.readEntry("access_link", "access_bin")[0]
-    access_db = project.readEntry("access_link", "access_db")[0]
-    vector_layer = project.readEntry("access_link", "vector_layer")[0]
-    attribute_column = project.readEntry("access_link", "attribute_column")[0]
-    poll_time = project.readEntry("access_link", "poll_time")[0]
-    enable_polling = project.readNumEntry("access_link", "enable_polling")[0]
-
-    if True:
-        transfer_dir = project.readEntry("access_link", "transfer_dir", "tmp")[0]
+    # Set True for Linux testing
+    if False:
+        transfer_dir = project.readEntry("access_link", "transfer_dir", "/tmp")[0]
         input_file = project.readEntry("access_link", "input_file", "ExpAcc.txt")[0]
         output_file = project.readEntry("access_link", "output_file", "ImpAcc.txt")[0]
         lock_file = project.readEntry("access_link", "lock_file", "lock.log")[0]
@@ -60,7 +50,24 @@ def load_settings():
         vector_layer = project.readEntry("access_link", "vector_layer", "ALKIS")[0]
         attribute_column = project.readEntry("access_link", "attribute_column", "id")[0]
         poll_time = project.readEntry("access_link", "poll_time", "0.5")[0]
-        enable_polling = project.readNumEntry("access_link", "enable_polling", 1)[0]
+    else:
+        transfer_dir = \
+            project.readEntry("access_link", "transfer_dir",
+                              "Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\QGisUebergabe")[
+                0]
+        input_file = project.readEntry("access_link", "input_file", "ExpAcc.txt")[0]
+        output_file = project.readEntry("access_link", "output_file", "ImpAcc.txt")[0]
+        lock_file = project.readEntry("access_link", "lock_file", "lock.log")[0]
+        access_bin = \
+            project.readEntry("access_link", "access_bin",
+                              "C:\Program Files (x86)\Microsoft Office\OFFICE11\msaccess.exe")[
+                0]
+        access_db = \
+            project.readEntry("access_link", "access_db",
+                              "Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\KatasterDB.mdb")[0]
+        vector_layer = project.readEntry("access_link", "vector_layer", "ALKIS")[0]
+        attribute_column = project.readEntry("access_link", "attribute_column", "id")[0]
+        poll_time = project.readEntry("access_link", "poll_time", "0.5")[0]
 
     settings = dict(transfer_dir=transfer_dir,
                     input_file=input_file,
@@ -70,8 +77,7 @@ def load_settings():
                     access_db=access_db,
                     vector_layer=vector_layer,
                     attribute_column=attribute_column,
-                    poll_time=poll_time,
-                    enable_polling=enable_polling)
+                    poll_time=poll_time)
 
     return settings
 
@@ -142,24 +148,19 @@ class Worker(QObject):
         self.lock_file = os.path.join(settings["lock_file"], settings["input_file"])
         self.vector_layer = settings["vector_layer"]
         self.attribute_column = settings["attribute_column"]
-        self.poll_time = float(settings["poll_time"])
+        if settings["poll_time"]:
+            self.poll_time = float(settings["poll_time"])
         # print(settings)
 
-        self.killed = False
-
-        if os.path.isfile(self.input_file) is False:
-            QMessageBox.Critical(None, u"Fehler", u"Die Input Datei <%s> wurde icht gefunden. "
-                                                  u"Breche Datei-Polling ab." % self.input_file)
-            self.killed = True
-            return
-        else:
-            self.mtime = None
+        if os.path.exists(self.input_file) is False:
+            QMessageBox.warning(None, u"Access-Link: Warnung", u"Die Input Datei <%s> "
+                                                               u"wurde icht gefunden. " % self.input_file)
 
         self.layer = self.layer_reg.mapLayersByName(self.vector_layer)
         if self.layer and len(self.layer) > 0:
             self.layer = self.layer[0]
         if not self.layer:
-            QMessageBox.Critical(None, u"Fehler",
+            QMessageBox.critical(None, u"Access-Link: Fehler",
                                  u"Der Vektorlayer <%s> wurde nicht gefunden. "
                                  u"Breche Datei-Polling ab." % self.vector_layer)
             self.killed = True
@@ -170,9 +171,9 @@ class Worker(QObject):
         for field in fields:
             attr_list.append(field.name())
         if self.attribute_column not in attr_list:
-            QMessageBox.Critical(None, u"Fehler", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>. "
-                                                  u"Breche Datei-Polling ab." % (self.vector_layer,
-                                                                                 self.attribute_column))
+            QMessageBox.critical(None, u"Access-Link: Fehler", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>. "
+                                                               u"Breche Datei-Polling ab." % (self.vector_layer,
+                                                                                              self.attribute_column))
             self.killed = True
             return
 
@@ -200,7 +201,7 @@ class Worker(QObject):
                 break
 
             # Check the modification time
-            if os.path.isfile(self.input_file):
+            if os.path.exists(self.input_file) is True:
                 new_mtime = os.path.getmtime(self.input_file)
 
                 if self.mtime == new_mtime:
@@ -214,9 +215,9 @@ class Worker(QObject):
                         # Show
                         if lock_count > 20:
                             lock_count = 0
-                            QMessageBox.Critical(None, u"Fehler", u"Die Lock-Datei <%s> verhindert das "
-                                                                  u"Einlesen der Kataster ID. "
-                                                                  u"Bitte löschen." % self.lock_file)
+                            QMessageBox.critical(None, u"Access-Link: Fehler", u"Die Lock-Datei <%s> verhindert das "
+                                                                               u"Einlesen der Kataster ID. "
+                                                                               u"Bitte löschen." % self.lock_file)
                         continue
                     # Read the vector id
                     self.mtime = new_mtime

@@ -27,6 +27,7 @@ from PyQt4 import QtGui, uic
 from qgis.core import QgsProject
 from PyQt4.QtGui import QFileDialog
 from .file_poller import start_poll_worker, stop_poll_worker, load_settings
+from PyQt4.QtGui import QMessageBox
 
 LOCK_FILE_NAME = "lock.log"
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -39,16 +40,16 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
         super(AccessLinkDialog, self).__init__(parent)
 
         self.setupUi(self)
-        self.project = None
 
-        self.toolButtonIdFile.released.connect(self.select_ascii_id_file)
-        self.toolButtonBatchFile.released.connect(self.select_batch_file)
+        self.toolButtonTransferDir.released.connect(self.select_transfer_dir)
+        self.toolButtonAccessBin.released.connect(self.select_access_bin)
+        self.toolButtonAccessDB.released.connect(self.select_access_db)
         self.pushButtonSave.released.connect(self.save_settings)
         self.pushButtonRestartPolling.released.connect(self.start_poll_worker)
         self.pushButtonStopPolling.released.connect(self.stop_poll_worker)
-        self.pushButtonReload.released.connect(self._load_settings)
+        self.pushButtonReload.released.connect(self.load_settings)
 
-    def _load_settings(self):
+    def load_settings(self):
         """Load all settings from the project file"""
 
         settings = load_settings()
@@ -56,7 +57,7 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
             return
 
         self.lineEditTransferDir.setText(settings["transfer_dir"])
-        self.lineEditnputFile.setText(settings["input_file"])
+        self.lineEditInputFile.setText(settings["input_file"])
         self.lineEditOutputFile.setText(settings["output_file"])
         self.lineEditLockFile.setText(settings["lock_file"])
         self.lineEditAccessBin.setText(settings["access_bin"])
@@ -65,28 +66,36 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
         self.lineEditAttributeColumn.setText(settings["attribute_column"])
         self.lineEditPollTime.setText(settings["poll_time"])
 
-    def select_input_file(self):
+    def select_transfer_dir(self):
         """Set the ASCII file path and the lock path derived from the ASCII file path"""
 
-        file_name = QFileDialog.getOpenFileName(self, u"Wähle Input Datei für QGIS")
-        self.lineEditIdFile.setText(file_name)
+        file_name = QFileDialog.getOpenFileName(self, u"Wähle das Transferverzeichnis")
+        self.lineEditTransferDir.setText(file_name)
 
-    def select_batch_file(self):
-        file_name = QFileDialog.getOpenFileName(self, u"Wähle das Visual Basic Script")
-        self.lineEditBatchFile.setText(file_name)
+    def select_access_bin(self):
+        file_name = QFileDialog.getOpenFileName(self, u"Wähle das MS-Access Executable")
+        self.lineEditAccessBin.setText(file_name)
+
+    def select_access_db(self):
+        file_name = QFileDialog.getOpenFileName(self, u"Wähle die MS-Access Datenbank")
+        self.lineEditAccessDB.setText(file_name)
 
     def save_settings(self):
         """Save all settings in the project file
         """
-        self.project.writeEntry("access_link", "transfer_dir", self.lineEditTransferDir.text())
-        self.project.writeEntry("access_link", "input_file", self.lineEditnputFile.text())
-        self.project.writeEntry("access_link", "output_file", self.lineEditOutputFile.text())
-        self.project.writeEntry("access_link", "lock_file", self.lineEditLockFile.text())
-        self.project.writeEntry("access_link", "access_bin", self.lineEditAccessBin.text())
-        self.project.writeEntry("access_link", "access_db", self.lineEditAccessDB.text())
-        self.project.writeEntry("access_link", "vector_layer", self.lineEditVectorLayer.text())
-        self.project.writeEntry("access_link", "attribute_column", self.lineEditAttributeColumn.text())
-        self.project.writeEntry("access_link", "poll_time", self.lineEditPollTime.text())
+        project = QgsProject.instance()
+        if not project:
+            QMessageBox.critical(None, u"Access-Link: Fehler", u"Es existiert keine Projektdatei")
+            return
+        project.writeEntry("access_link", "transfer_dir", self.lineEditTransferDir.text())
+        project.writeEntry("access_link", "input_file", self.lineEditInputFile.text())
+        project.writeEntry("access_link", "output_file", self.lineEditOutputFile.text())
+        project.writeEntry("access_link", "lock_file", self.lineEditLockFile.text())
+        project.writeEntry("access_link", "access_bin", self.lineEditAccessBin.text())
+        project.writeEntry("access_link", "access_db", self.lineEditAccessDB.text())
+        project.writeEntry("access_link", "vector_layer", self.lineEditVectorLayer.text())
+        project.writeEntry("access_link", "attribute_column", self.lineEditAttributeColumn.text())
+        project.writeEntry("access_link", "poll_time", self.lineEditPollTime.text())
 
     def start_poll_worker(self):
         start_poll_worker()

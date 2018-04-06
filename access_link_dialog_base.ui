@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>743</width>
+    <width>782</width>
     <height>521</height>
    </rect>
   </property>
@@ -35,7 +35,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QToolButton" name="toolButtonIdFile">
+          <widget class="QToolButton" name="toolButtonTransferDir">
            <property name="text">
             <string>...</string>
            </property>
@@ -70,6 +70,19 @@
         </layout>
        </item>
        <item>
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
         <layout class="QVBoxLayout" name="verticalLayout_9">
          <item>
           <widget class="QLabel" name="label_9">
@@ -90,6 +103,19 @@
           </layout>
          </item>
         </layout>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
        </item>
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -136,7 +162,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QToolButton" name="toolButtonBatchFile">
+        <widget class="QToolButton" name="toolButtonAccessBin">
          <property name="text">
           <string>...</string>
          </property>
@@ -165,7 +191,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QToolButton" name="toolButtonBatchFile_2">
+        <widget class="QToolButton" name="toolButtonAccessDB">
          <property name="text">
           <string>...</string>
          </property>
@@ -216,7 +242,7 @@
      <item>
       <widget class="QLabel" name="label_6">
        <property name="text">
-        <string>Zeit in Sekunden wenn neue Vektorfeature-Id's geprüft werden soll.</string>
+        <string>Zeit in Sekunden zur Prüfung neuer Kataster ID aus MS-Access</string>
        </property>
       </widget>
      </item>
