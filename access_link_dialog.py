@@ -69,7 +69,7 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
     def select_transfer_dir(self):
         """Set the ASCII file path and the lock path derived from the ASCII file path"""
 
-        file_name = QFileDialog.getOpenFileName(self, u"Wähle das Transferverzeichnis")
+        file_name = QFileDialog.getExistingDirectory(self, u"Wähle das Transferverzeichnis")
         self.lineEditTransferDir.setText(file_name)
 
     def select_access_bin(self):
