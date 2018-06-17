@@ -30,7 +30,7 @@ import resources
 # Import the code for the dialog
 from access_link_dialog import AccessLinkDialog
 import os.path
-from .file_poller import start_poll_worker, stop_poll_worker, load_settings
+from .file_poller import start_poll_worker, stop_poll_worker, read_settings
 
 
 class AccessLink:
@@ -227,10 +227,7 @@ class AccessLink:
     def open_access_for_feature(self):
         """Write the id into a text file and start MS-Access if its not running
         """
-        settings = load_settings()
-
-        if settings is None:
-            return
+        settings = read_settings()
 
         output_file = os.path.join(settings["transfer_dir"], settings["output_file"])
         lock_file = os.path.join(settings["transfer_dir"], settings["lock_file"])

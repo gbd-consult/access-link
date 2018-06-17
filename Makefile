@@ -46,7 +46,7 @@ PY_FILES = \
 	__init__.py \
 	access_link.py access_link_dialog.py file_poller.py
 
-UI_FILES = access_link_dialog_base.ui
+UI_FILES = access_link_dialog_base.ui config.txt
 
 EXTRAS = metadata.txt icon.png
 

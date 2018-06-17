@@ -1,0 +1,10 @@
+[AccessLink]
+transfer_dir = /tmp
+input_file = ExpAcc.txt
+output_file = ImpAcc.txt
+lock_file = lock.log
+access_bin = /usr/bin/gedit
+access_db = /tmp/ImpAcc.txt
+vector_layer = gebauedebauwerk
+attribute_column = oid_
+poll_time = 0.5

@@ -24,50 +24,81 @@
 import os
 import time
 import qgis
-from qgis.core import QgsProject, QgsMapLayerRegistry
+import configparser
+from qgis.core import QgsMapLayerRegistry
 from PyQt4.QtCore import QObject, QThread
 from PyQt4.QtGui import QMessageBox
 
 worker_thread = None
 worker_object = None
 
+# The config file is always located in the plugin directory
+CONFIG_FILE = os.path.join(os.path.dirname(__file__), "config.txt")
 
-def load_settings():
-    """Load all settings from the project file"""
-    project = QgsProject.instance()
-    if not project:
-        QMessageBox.Critical(None, u"Fehler", u"Es existiert keine Projektdatei.")
-        return None
 
-    # Set True for Linux testing
-    if False:
-        transfer_dir = project.readEntry("access_link", "transfer_dir", "/tmp")[0]
-        input_file = project.readEntry("access_link", "input_file", "ExpAcc.txt")[0]
-        output_file = project.readEntry("access_link", "output_file", "ImpAcc.txt")[0]
-        lock_file = project.readEntry("access_link", "lock_file", "lock.log")[0]
-        access_bin = project.readEntry("access_link", "access_bin", "/usr/bin/gedit")[0]
-        access_db = project.readEntry("access_link", "access_db", "/tmp/access_db")[0]
-        vector_layer = project.readEntry("access_link", "vector_layer", "ALKIS")[0]
-        attribute_column = project.readEntry("access_link", "attribute_column", "id")[0]
-        poll_time = project.readEntry("access_link", "poll_time", "0.5")[0]
-    else:
-        transfer_dir = \
-            project.readEntry("access_link", "transfer_dir",
-                              "Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\QGisUebergabe")[
-                0]
-        input_file = project.readEntry("access_link", "input_file", "ExpAcc.txt")[0]
-        output_file = project.readEntry("access_link", "output_file", "ImpAcc.txt")[0]
-        lock_file = project.readEntry("access_link", "lock_file", "lock.log")[0]
-        access_bin = \
-            project.readEntry("access_link", "access_bin",
-                              "C:\Program Files (x86)\Microsoft Office\OFFICE11\msaccess.exe")[
-                0]
-        access_db = \
-            project.readEntry("access_link", "access_db",
-                              "Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\KatasterDB.mdb")[0]
-        vector_layer = project.readEntry("access_link", "vector_layer", "ALKIS")[0]
-        attribute_column = project.readEntry("access_link", "attribute_column", "id")[0]
-        poll_time = project.readEntry("access_link", "poll_time", "0.5")[0]
+def write_settings(settings):
+    """Write the settings into the text config file
+
+    :param settings:
+    :return:
+    """
+
+    config = configparser.ConfigParser()
+
+    config.add_section('AccessLink')
+
+    config.set('AccessLink', 'transfer_dir', settings["transfer_dir"])
+    config.set('AccessLink', 'input_file', settings["input_file"])
+    config.set('AccessLink', 'output_file', settings["output_file"])
+    config.set('AccessLink', 'lock_file', settings["lock_file"])
+    config.set('AccessLink', 'access_bin', settings["access_bin"])
+    config.set('AccessLink', 'access_db', settings["access_db"])
+    config.set('AccessLink', 'vector_layer', settings["vector_layer"])
+    config.set('AccessLink', 'attribute_column', settings["attribute_column"])
+    config.set('AccessLink', 'poll_time', settings["poll_time"])
+
+    with open(CONFIG_FILE, 'w') as configfile:
+        config.write(configfile)
+
+
+def read_settings():
+    """Read the settings from the text config file
+
+    :return: settings
+    """
+    transfer_dir = None
+    input_file = None
+    output_file = None
+    lock_file = None
+    access_bin = None
+    access_db = None
+    vector_layer = None
+    attribute_column = None
+    poll_time = None
+
+    config = configparser.ConfigParser()
+    with open(CONFIG_FILE, 'r') as configfile:
+        config.read_file(configfile)
+
+        if config.has_section("AccessLink"):
+            if config.has_option("AccessLink", "transfer_dir"):
+                transfer_dir = config.get("AccessLink", "transfer_dir")
+            if config.has_option("AccessLink", "input_file"):
+                input_file = config.get("AccessLink", "input_file")
+            if config.has_option("AccessLink", "output_file"):
+                output_file = config.get("AccessLink", "output_file")
+            if config.has_option("AccessLink", "lock_file"):
+                lock_file = config.get("AccessLink", "lock_file")
+            if config.has_option("AccessLink", "access_bin"):
+                access_bin = config.get("AccessLink", "access_bin")
+            if config.has_option("AccessLink", "access_db"):
+                access_db = config.get("AccessLink", "access_db")
+            if config.has_option("AccessLink", "vector_layer"):
+                vector_layer = config.get("AccessLink", "vector_layer")
+            if config.has_option("AccessLink", "attribute_column"):
+                attribute_column = config.get("AccessLink", "attribute_column")
+            if config.has_option("AccessLink", "poll_time"):
+                poll_time = config.get("AccessLink", "poll_time")
 
     settings = dict(transfer_dir=transfer_dir,
                     input_file=input_file,
@@ -131,53 +162,58 @@ class Worker(QObject):
         self.mtime = None
         self.layer = None
         self.field_index = None
-        self.layer_reg = None
-        self.load()
-
-    def load(self):
-
-        # print("Load data for file poll thread")
-
-        settings = load_settings()
-        if settings is None:
-            return
 
         self.layer_reg = QgsMapLayerRegistry.instance()
 
+    def check_settings(self):
+
+        print("Load settings in file poll thread")
+
+        settings = read_settings()
+
         self.input_file = os.path.join(settings["transfer_dir"], settings["input_file"])
-        self.lock_file = os.path.join(settings["lock_file"], settings["input_file"])
+        self.lock_file = os.path.join(settings["transfer_dir"], settings["lock_file"])
         self.vector_layer = settings["vector_layer"]
         self.attribute_column = settings["attribute_column"]
         if settings["poll_time"]:
             self.poll_time = float(settings["poll_time"])
-        # print(settings)
 
         if os.path.exists(self.input_file) is False:
-            QMessageBox.warning(None, u"Access-Link: Warnung", u"Die Input Datei <%s> "
-                                                               u"wurde icht gefunden. " % self.input_file)
+            print(u"Access-Link: Fehler: Die Input Datei <%s> wurde nicht gefunden." % self.input_file)
+            #QMessageBox.warning(None, u"Access-Link: Warnung", u"Die Input Datei <%s> "
+            #                                                   u"wurde nicht gefunden. " % self.input_file)
+            return False
+
+        if not self.vector_layer:
+            return False
 
         self.layer = self.layer_reg.mapLayersByName(self.vector_layer)
         if self.layer and len(self.layer) > 0:
             self.layer = self.layer[0]
         if not self.layer:
-            QMessageBox.critical(None, u"Access-Link: Fehler",
-                                 u"Der Vektorlayer <%s> wurde nicht gefunden. "
-                                 u"Breche Datei-Polling ab." % self.vector_layer)
-            self.killed = True
-            return
+            print(u"Access-Link: Fehler: Der Vektorlayer <%s> wurde nicht gefunden." % self.vector_layer)
+            #QMessageBox.critical(None, u"Access-Link: Fehler",
+            #                     u"Der Vektorlayer <%s> wurde nicht gefunden. "
+            #                     u"Breche Datei-Polling ab." % self.vector_layer)
+            #self.killed = True
+            return False
 
-        fields = self.layer.fields()
-        attr_list = []
-        for field in fields:
-            attr_list.append(field.name())
-        if self.attribute_column not in attr_list:
-            QMessageBox.critical(None, u"Access-Link: Fehler", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>. "
-                                                               u"Breche Datei-Polling ab." % (self.vector_layer,
-                                                                                              self.attribute_column))
-            self.killed = True
-            return
+        if self.layer:
+            fields = self.layer.fields()
+            attr_list = []
+            for field in fields:
+                attr_list.append(field.name())
+            if self.attribute_column not in attr_list:
+                QMessageBox.critical(None, u"Access-Link: Fehler", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>."%
+                                     (self.vector_layer,
+                                      self.attribute_column))
+                return False
 
-        self.field_index = attr_list.index(self.attribute_column)
+
+            self.field_index = attr_list.index(self.attribute_column)
+
+        print("Successfully read settings")
+        return True
 
     def kill(self):
         self.killed = True
@@ -189,16 +225,32 @@ class Worker(QObject):
         # print("Run infinite loop")
         lock_count = 0
 
+        load_state = self.check_settings()
+        count = 0
+
         while True:
+            count += 1
+
             if self.poll_time is not None:
                 time.sleep(self.poll_time)
             else:
-                time.sleep(1)
-                continue
+                time.sleep(4)
 
             if self.killed is True:
-                # print("Worker thread got killed")
+                print("Worker thread got killed")
                 break
+            # Check for configuration reload
+            if count % 20 is 0:
+                print("Check for config", count)
+                load_state = self.check_settings()
+
+            # If the setting are incorrect, then wait for three seconds and check again
+            if load_state is False:
+                print("Load state was False")
+                time.sleep(4)
+                load_state = self.check_settings()
+                if load_state is False:
+                    continue
 
             # Check the modification time
             if os.path.exists(self.input_file) is True:
@@ -226,10 +278,11 @@ class Worker(QObject):
                     expr = "\"%s\" = '%s'" % (self.attribute_column, feature_id)
                     # print("Expression", expr)
 
-                    self.layer.selectByExpression(expr)
-                    qgis.utils.iface.setActiveLayer(self.layer)
-                    # Zoom to the selected features
-                    qgis.utils.iface.actionZoomToSelected().trigger()
+                    if self.layer:
+                        self.layer.selectByExpression(expr)
+                        qgis.utils.iface.setActiveLayer(self.layer)
+                        # Zoom to the selected features
+                        qgis.utils.iface.actionZoomToSelected().trigger()
             else:
                 pass
                 # print("Waiting for QGIS to initialize")
