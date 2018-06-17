@@ -66,19 +66,19 @@ def read_settings():
 
     :return: settings
     """
-    transfer_dir = None
-    input_file = None
-    output_file = None
-    lock_file = None
-    access_bin = None
-    access_db = None
-    vector_layer = None
-    attribute_column = None
-    poll_time = None
+    transfer_dir = "Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\QGisUebergabe"
+    input_file = "ImpAcc.txt"
+    output_file = "ExpAcc.txt"
+    lock_file = "lock.log"
+    access_bin = "C:\Program Files (x86)\Microsoft Office\OFFICE11\msaccess.exe"
+    access_db = "Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\KatasterDB.mdb"
+    vector_layer = "ALKIS"
+    attribute_column = "id"
+    poll_time = "0.5"
 
     config = configparser.ConfigParser()
     with open(CONFIG_FILE, 'r') as configfile:
-        config.read_file(configfile)
+        config.readfp(configfile)
 
         if config.has_section("AccessLink"):
             if config.has_option("AccessLink", "transfer_dir"):
