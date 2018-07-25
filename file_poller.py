@@ -25,8 +25,8 @@ import os
 import time
 import qgis
 import configparser
-from qgis.core import QgsMapLayerRegistry
-from PyQt4.QtCore import QObject, QThread
+from qgis.core import QgsMapLayerRegistry, QgsMessageLog
+from PyQt4.QtCore import QObject, QThread, SIGNAL
 from PyQt4.QtGui import QMessageBox
 
 worker_thread = None
@@ -66,19 +66,28 @@ def read_settings():
 
     :return: settings
     """
-    transfer_dir = "Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\QGisUebergabe"
+
+    QgsMessageLog.logMessage("Read Access Link settings")
+
+    transfer_dir = "C:\Users\Gebbert\Documents"
     input_file = "ImpAcc.txt"
     output_file = "ExpAcc.txt"
     lock_file = "lock.log"
-    access_bin = "C:\Program Files (x86)\Microsoft Office\OFFICE11\msaccess.exe"
-    access_db = "Z:\Entwicklung\Access 2003\Kitzing\KatasterDB\KatasterDB.mdb"
-    vector_layer = "ALKIS"
-    attribute_column = "id"
+    access_bin = "C:/Users/Gebbert/Documents/start_something.bat"
+    access_db = "C:/Users/Gebbert/Documents/ImpAcc.txt"
+    vector_layer = "Test_sie02_f_"
+    attribute_column = "OBJID"
     poll_time = "0.5"
+
+    if os.path.exists(CONFIG_FILE) is False:
+        QMessageBox.critical(None, u"Access-Link: Fehler", u"Die Konfigurationsdatei <%s> "
+                                                           u"wurde nicht gefunden. " % CONFIG_FILE)
+        raise Exception("Konfigurationsdatei nicht gefunden.")
 
     config = configparser.ConfigParser()
     with open(CONFIG_FILE, 'r') as configfile:
         config.readfp(configfile)
+        configfile.close()
 
         if config.has_section("AccessLink"):
             if config.has_option("AccessLink", "transfer_dir"):
@@ -113,9 +122,67 @@ def read_settings():
     return settings
 
 
-def start_poll_worker():
+def zoom_to_feature():
+
+    QgsMessageLog.logMessage("Attempt to zoom to feature")
+
+    # Read the settings from the config file
+    settings = read_settings()
+
+    input_file = os.path.join(settings["transfer_dir"], settings["input_file"])
+    vector_layer = settings["vector_layer"]
+    attribute_column = settings["attribute_column"]
+
+    if os.path.exists(input_file) is False:
+        print(u"Access-Link: Fehler: Die Input Datei <%s> wurde nicht gefunden." % self.input_file)
+        # QMessageBox.warning(None, u"Access-Link: Warnung", u"Die Input Datei <%s> "
+        #                                                   u"wurde nicht gefunden. " % self.input_file)
+        return False
+
+    if not vector_layer:
+        return False
+
+    QgsMessageLog.logMessage("Check for vector layer %s"%vector_layer)
+
+    layer = QgsMapLayerRegistry.instance().mapLayersByName(vector_layer)
+
+    if not layer:
+        QgsMessageLog.logMessage(u"Access-Link: Fehler: Der Vektorlayer <%s> wurde nicht gefunden." % vector_layer)
+        return False
+
+    if len(layer) > 0:
+        layer = layer[0]
+
+    fields = layer.fields()
+    attr_list = []
+    for field in fields:
+        attr_list.append(field.name())
+    if attribute_column not in attr_list:
+        QMessageBox.critical(None, u"Access-Link: Fehler",
+                             u"Der Vektorlayer <%s> hat keine Attributspalte <%s>." %
+                             (vector_layer,
+                              attribute_column))
+        return False
+
+    field_index = attr_list.index(attribute_column)
+
+    # Read the feature id and zoom to it
+    feature_id = open(input_file, "r").read().strip()
+    # Formulate the expression
+    expr = "\"%s\" = '%s'" % (attribute_column, feature_id)
+    # print("Expression", expr)
+
+    layer.selectByExpression(expr)
+    qgis.utils.iface.setActiveLayer(layer)
+    # Zoom to the selected features
+    qgis.utils.iface.actionZoomToSelected().trigger()
+
+    QgsMessageLog.logMessage("Successfully read settings")
+
+def start_poll_worker(iface):
     """Start the thread that polls the ascii file for changes and zooms to the vector id
     """
+
     global worker_thread, worker_object
 
     if worker_thread:
@@ -124,12 +191,16 @@ def start_poll_worker():
     worker_object = Worker()
     worker_thread = QThread()
 
+    # Connect the
+    QgsMessageLog.logMessage("Connection the worker thread signal to zoom function")
+    iface.connect(worker_object, worker_object.signal, zoom_to_feature)
+
     worker_object.moveToThread(worker_thread)
 
     worker_thread.started.connect(worker_object.run)
     worker_thread.start()
 
-    # print("Worker thread started")
+    QgsMessageLog.logMessage("Worker thread started")
 
 
 def stop_poll_worker():
@@ -162,102 +233,42 @@ class Worker(QObject):
         self.mtime = None
         self.layer = None
         self.field_index = None
-
-        self.layer_reg = QgsMapLayerRegistry.instance()
-
-    def check_settings(self):
-
-        print("Load settings in file poll thread")
+        self.poll_time = 1
+        # The signal that is emitted when the file was modified
+        self.signal = SIGNAL("File_modified")
 
         settings = read_settings()
 
         self.input_file = os.path.join(settings["transfer_dir"], settings["input_file"])
         self.lock_file = os.path.join(settings["transfer_dir"], settings["lock_file"])
-        self.vector_layer = settings["vector_layer"]
-        self.attribute_column = settings["attribute_column"]
         if settings["poll_time"]:
             self.poll_time = float(settings["poll_time"])
-
-        if os.path.exists(self.input_file) is False:
-            print(u"Access-Link: Fehler: Die Input Datei <%s> wurde nicht gefunden." % self.input_file)
-            #QMessageBox.warning(None, u"Access-Link: Warnung", u"Die Input Datei <%s> "
-            #                                                   u"wurde nicht gefunden. " % self.input_file)
-            return False
-
-        if not self.vector_layer:
-            return False
-
-        self.layer = self.layer_reg.mapLayersByName(self.vector_layer)
-        if self.layer and len(self.layer) > 0:
-            self.layer = self.layer[0]
-        if not self.layer:
-            print(u"Access-Link: Fehler: Der Vektorlayer <%s> wurde nicht gefunden." % self.vector_layer)
-            #QMessageBox.critical(None, u"Access-Link: Fehler",
-            #                     u"Der Vektorlayer <%s> wurde nicht gefunden. "
-            #                     u"Breche Datei-Polling ab." % self.vector_layer)
-            #self.killed = True
-            return False
-
-        if self.layer:
-            fields = self.layer.fields()
-            attr_list = []
-            for field in fields:
-                attr_list.append(field.name())
-            if self.attribute_column not in attr_list:
-                QMessageBox.critical(None, u"Access-Link: Fehler", u"Der Vektorlayer <%s> hat keine Attributspalte <%s>."%
-                                     (self.vector_layer,
-                                      self.attribute_column))
-                return False
-
-
-            self.field_index = attr_list.index(self.attribute_column)
-
-        print("Successfully read settings")
-        return True
 
     def kill(self):
         self.killed = True
 
     def run(self):
         """The function that runs the infinite loop to poll the ascii file for changes. If the text file changes,
-        then the content will be read and zoom to a feature with the same id.
+        then the a signal will be emitted to trigger the feature zoom.
         """
-        # print("Run infinite loop")
+        QgsMessageLog.logMessage("Run infinite loop")
         lock_count = 0
 
-        load_state = self.check_settings()
-        count = 0
-
         while True:
-            count += 1
 
-            if self.poll_time is not None:
-                time.sleep(self.poll_time)
-            else:
-                time.sleep(4)
+            QgsMessageLog.logMessage("Poll for input file")
+
+            time.sleep(self.poll_time)
 
             if self.killed is True:
-                print("Worker thread got killed")
+                QgsMessageLog.logMessage("Worker thread got killed")
                 break
-            # Check for configuration reload
-            if count % 20 is 0:
-                print("Check for config", count)
-                load_state = self.check_settings()
-
-            # If the setting are incorrect, then wait for three seconds and check again
-            if load_state is False:
-                print("Load state was False")
-                time.sleep(4)
-                load_state = self.check_settings()
-                if load_state is False:
-                    continue
 
             # Check the modification time
             if os.path.exists(self.input_file) is True:
                 new_mtime = os.path.getmtime(self.input_file)
 
                 if self.mtime == new_mtime:
-                    # print("Nothing to do")
                     continue
                 else:
                     # print("File was changes", self.mtime, new_mtime)
@@ -271,18 +282,10 @@ class Worker(QObject):
                                                                                u"Einlesen der Kataster ID. "
                                                                                u"Bitte löschen." % self.lock_file)
                         continue
-                    # Read the vector id
+                    # Emit the vector zoom signal
                     self.mtime = new_mtime
-                    feature_id = open(self.input_file, "r").read().strip()
-
-                    expr = "\"%s\" = '%s'" % (self.attribute_column, feature_id)
-                    # print("Expression", expr)
-
-                    if self.layer:
-                        self.layer.selectByExpression(expr)
-                        qgis.utils.iface.setActiveLayer(self.layer)
-                        # Zoom to the selected features
-                        qgis.utils.iface.actionZoomToSelected().trigger()
+                    QgsMessageLog.logMessage("Emmit zoom signal")
+                    self.emit(self.signal)
             else:
                 pass
                 # print("Waiting for QGIS to initialize")

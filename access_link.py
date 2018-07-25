@@ -70,7 +70,7 @@ class AccessLink:
         self.toolbar.setObjectName(u'AccessLink')
 
         # Create the dialog (after translation) and keep reference
-        self.dlg = AccessLinkDialog(parent=self.iface.mainWindow())
+        self.dlg = AccessLinkDialog(iface=iface, parent=self.iface.mainWindow())
         # Call the initialization of the plugin when QGIS finished
         # its own initialization
         qgis.utils.iface.initializationCompleted.connect(self.init_plugin)
@@ -221,7 +221,7 @@ class AccessLink:
         :return:
         """
         # Start the poll worker thread
-        start_poll_worker()
+        start_poll_worker(self.iface)
         self.dlg.load_settings()
 
     def open_access_for_feature(self):
@@ -236,12 +236,24 @@ class AccessLink:
         # Extract lockfile
         filename, file_extension = os.path.splitext(access_db)
 
-        access_db_lock_1 = "%s.laccdb"%filename
-        access_db_lock_2 = "%s.ldb"%filename
+        access_db_lock_1 = "%s.laccdb" % filename
+        access_db_lock_2 = "%s.ldb" % filename
 
         layer = self.iface.activeLayer()
         if not layer:
             return
+
+        if isinstance(layer, qgis.core.QgsVectorLayer) is False:
+            return
+
+        if layer.name() not in settings["vector_layer"]:
+            QMessageBox.critical(self.iface.mainWindow(),
+                                 u"Access-Link: Fehler", u"Der Vektorlayer <%s> "
+                                                         u" ist nicht der benötigte layer <%s>. " % (layer.name(),
+                                                                                                     settings[
+                                                                                                         "vector_layer"]))
+            return
+
         attr_col = settings["attribute_column"]
         features = layer.selectedFeatures()
         if layer and len(features) > 0:
@@ -253,20 +265,20 @@ class AccessLink:
                 QMessageBox.critical(self.iface.mainWindow(),
                                      u"Access-Link: Fehler", u"Der Vektorlayer <%s> "
                                                              u"hat keine Attributspalte <%s>. " % (layer.name(),
-                                                                                                          attr_col))
+                                                                                                   attr_col))
                 return
 
             id = features[0][attr_col].strip()
 
             if os.path.exists(lock_file):
                 QMessageBox.warning(self.iface.mainWindow(), u"Access-Link: Warnung",
-                                    u"Kann Kataster ID nicht schreiben, da Lockdatei <%s> existiert."%lock_file)
+                                    u"Kann Kataster ID nicht schreiben, da Lockdatei <%s> existiert." % lock_file)
                 return
 
             try:
                 # Write Lockfile
                 lock = open(lock_file, "w")
-                #print(u"Create lock file")
+                # print(u"Create lock file")
                 lock.write("LOCK")
                 lock.flush()
                 lock.close()
@@ -283,7 +295,7 @@ class AccessLink:
             finally:
                 # Try to remove lock file
                 try:
-                    #print(u"Remove lock file")
+                    # print(u"Remove lock file")
                     os.remove(lock_file)
                 except:
                     pass

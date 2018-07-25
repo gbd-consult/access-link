@@ -35,10 +35,11 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 
 class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
-    def __init__(self, parent=None):
+    def __init__(self, iface, parent=None):
         """Constructor."""
         super(AccessLinkDialog, self).__init__(parent)
 
+        self.iface = iface
         self.setupUi(self)
 
         self.toolButtonTransferDir.released.connect(self.select_transfer_dir)
@@ -104,9 +105,11 @@ class AccessLinkDialog(QtGui.QDialog, FORM_CLASS):
                         poll_time=poll_time)
 
         write_settings(settings)
+        self.stop_poll_worker()
+        self.start_poll_worker()
 
     def start_poll_worker(self):
-        start_poll_worker()
+        start_poll_worker(self.iface)
 
     def stop_poll_worker(self):
         stop_poll_worker()
