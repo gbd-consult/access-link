@@ -67,7 +67,7 @@ def read_settings():
     :return: settings
     """
 
-    QgsMessageLog.logMessage("Read Access Link settings")
+    QgsMessageLog.logMessage("Access-Link: Read Access Link settings")
 
     transfer_dir = "C:\Users\Gebbert\Documents"
     input_file = "ImpAcc.txt"
@@ -124,7 +124,7 @@ def read_settings():
 
 def zoom_to_feature():
 
-    QgsMessageLog.logMessage("Attempt to zoom to feature")
+    QgsMessageLog.logMessage("Access-Link: versuche auf feature zu zoomen")
 
     # Read the settings from the config file
     settings = read_settings()
@@ -134,15 +134,13 @@ def zoom_to_feature():
     attribute_column = settings["attribute_column"]
 
     if os.path.exists(input_file) is False:
-        print(u"Access-Link: Fehler: Die Input Datei <%s> wurde nicht gefunden." % self.input_file)
+        QgsMessageLog.logMessage(u"Access-Link: Fehler: Die Input Datei <%s> wurde nicht gefunden." % input_file)
         # QMessageBox.warning(None, u"Access-Link: Warnung", u"Die Input Datei <%s> "
         #                                                   u"wurde nicht gefunden. " % self.input_file)
         return False
 
     if not vector_layer:
         return False
-
-    QgsMessageLog.logMessage("Check for vector layer %s"%vector_layer)
 
     layer = QgsMapLayerRegistry.instance().mapLayersByName(vector_layer)
 
@@ -164,20 +162,18 @@ def zoom_to_feature():
                               attribute_column))
         return False
 
-    field_index = attr_list.index(attribute_column)
-
     # Read the feature id and zoom to it
     feature_id = open(input_file, "r").read().strip()
     # Formulate the expression
     expr = "\"%s\" = '%s'" % (attribute_column, feature_id)
-    # print("Expression", expr)
+    QgsMessageLog.logMessage("Access-Link:  Expression: %s"%expr)
 
     layer.selectByExpression(expr)
     qgis.utils.iface.setActiveLayer(layer)
     # Zoom to the selected features
     qgis.utils.iface.actionZoomToSelected().trigger()
 
-    QgsMessageLog.logMessage("Successfully read settings")
+    QgsMessageLog.logMessage("Access-Link: zoom beendet")
 
 def start_poll_worker(iface):
     """Start the thread that polls the ascii file for changes and zooms to the vector id
@@ -192,7 +188,7 @@ def start_poll_worker(iface):
     worker_thread = QThread()
 
     # Connect the
-    QgsMessageLog.logMessage("Connection the worker thread signal to zoom function")
+    QgsMessageLog.logMessage("Access-Link: verbinde worker thread signal mit zoom Funktion")
     iface.connect(worker_object, worker_object.signal, zoom_to_feature)
 
     worker_object.moveToThread(worker_thread)
@@ -200,7 +196,7 @@ def start_poll_worker(iface):
     worker_thread.started.connect(worker_object.run)
     worker_thread.start()
 
-    QgsMessageLog.logMessage("Worker thread started")
+    QgsMessageLog.logMessage("Access-Link: Worker thread gestartet")
 
 
 def stop_poll_worker():
@@ -215,7 +211,7 @@ def stop_poll_worker():
         worker_thread.deleteLater()
         worker_thread = None
 
-        # print("Worker thread stopped")
+        QgsMessageLog.logMessage("Worker thread stopped")
 
 
 class Worker(QObject):
@@ -251,17 +247,17 @@ class Worker(QObject):
         """The function that runs the infinite loop to poll the ascii file for changes. If the text file changes,
         then the a signal will be emitted to trigger the feature zoom.
         """
-        QgsMessageLog.logMessage("Run infinite loop")
+        QgsMessageLog.logMessage("Access-Link: starte Dateipolling auf <%s>"%self.input_file)
         lock_count = 0
 
         while True:
 
-            QgsMessageLog.logMessage("Poll for input file")
+            # QgsMessageLog.logMessage("Access-Link: Polle Inputdatei")
 
             time.sleep(self.poll_time)
 
             if self.killed is True:
-                QgsMessageLog.logMessage("Worker thread got killed")
+                QgsMessageLog.logMessage("Access-Link: worker thread beendet")
                 break
 
             # Check the modification time
@@ -271,7 +267,8 @@ class Worker(QObject):
                 if self.mtime == new_mtime:
                     continue
                 else:
-                    # print("File was changes", self.mtime, new_mtime)
+                    QgsMessageLog.logMessage(u"Access-Link: Datei hat sich geaendert: Zeitstempel alt %s neu %s"%(
+                                             str(self.mtime), str(new_mtime)))
                     # Wait until the lock file was removed
                     if os.path.isfile(self.lock_file):
                         lock_count += 1
@@ -284,7 +281,7 @@ class Worker(QObject):
                         continue
                     # Emit the vector zoom signal
                     self.mtime = new_mtime
-                    QgsMessageLog.logMessage("Emmit zoom signal")
+                    QgsMessageLog.logMessage("Access-Link: versende zoom Signal")
                     self.emit(self.signal)
             else:
                 pass

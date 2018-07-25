@@ -304,14 +304,15 @@ class AccessLink:
                 QMessageBox.critical(self.iface.mainWindow(), u"Access-Link: Fehler",
                                      u"MS-Access Programm nicht gefunden. Pfad: "
                                      u"<%s>" % access_bin)
+                return
             if os.path.isfile(access_db) is False:
                 QMessageBox.critical(self.iface.mainWindow(), u"Access-Link: Fehler",
                                      u"MS-Access Datenbank nicht gefunden. Pfad: "
                                      u"<%s>" % access_db)
+                return
 
             if os.path.exists(access_db_lock_1) is True or os.path.exists(access_db_lock_2) is True:
                 return
 
             # Start MS-Access
-            print("Start", access_bin, access_db)
             proc = subprocess.Popen(args=[access_bin, access_db], shell=False)
